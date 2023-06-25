@@ -1,0 +1,18 @@
+[package]
+name = "mimir"
+authors = ["Luca Visentin <luca.visentin@unito.it>"]
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "lib_mimir"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mimir"
+path = "src/bin.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+ring = "0.16.20"
+data_encoding = "2.4.0"
