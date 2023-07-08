@@ -1,15 +1,15 @@
 [package]
-name = "mimir"
+name = "myr"
 authors = ["Luca Visentin <luca.visentin@unito.it>"]
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "lib_mimir"
+name = "lib_myr"
 path = "src/lib.rs"
 
 [[bin]]
-name = "mimir"
+name = "myr"
 path = "src/bin.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
