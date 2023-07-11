@@ -2,6 +2,8 @@
 
 The words MUST, SHOULD, MUST NOT, SHOULD NOT and MAY follow [RFC2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
+For examples of the specification, see the [examples](examples) folder.
+
 ## Definitions
 - **Data bundle**: a folder on disk containing data and metadata.
 - **Metadata file**: a JSON file containing metadata about the data bundle, present in the data bundle.
@@ -33,30 +35,17 @@ The following sections describe the structure of the data bundle, the metadata f
 - The value of a simple key MUST be either a valid JSON value, another JSON object, or a JSON array of JSON values or JSON objects.
 - The value of a remote key MUST be an absolute URL.
 - Remote keys' URLs MUST point to a valid JSON file that can be retrieved by following the URL.
-- Each JSON object in the metadata file MUST have the following keys:
-    - `id`: a valid JSON string. TODO: SHOULD THIS BE GLOBALLY UNIQUE?
-    - `type`: a valid JSON string.`
+- Each JSON object MUST have the `type` key. Its value MUST be a valid JSON string.
+- Each JSON object MAY have the `id` key. Its value MUST be a valid JSON string. If an `id` is specified, it MUST be globally unique in the JSON payload, at every level.
+    - Clarification: this means that, if you take **every** `id` key in every object at every level of the JSON payload, they MUST all have different values.
+    - This will include remote keys (with @) too, at freezing time. Keep this in mind when you fetch remote keys, and when you define new `id` keys. Using a UUID as an `id` is a good idea.
 - The `id` and `type` keys MUST be simple.
-- The value of relative keys MUST be a valid JSON string, and MUST be the same of one and only one `id` key in the same JSON object.
-- The top-level object MUST additionally contain the following keys:
-    - `specification`: a specification object.
-    - `content`: a JSON array of JSON objects, where each object is a file in the data bundle.
-
-An example `metadata.json` file following the specification is as follows:
-```json
-{
-    "id": "my_data_bundle",
-    "type": "bundle",
-    "@specification": "https://example.com/specification.json",
-    "content": [
-        {
-            "id": "experimental_data",
-            "type": "file",
-            "path": "./my_data_file.txt",
-        }
-    ]
-}
-```
+- The value of relative keys MUST be a valid JSON string, and MUST be the same of one `id` key in the same JSON object.
+- The top-level object MUST have a `type` of `"myr-bundle"`.
+- The top-level object MUST have a `specification` key with a valid specification (see below).
+    - The `specification` key MAY be a remote key (`@specification`).
+    - The `@specification` key MAY be a list of URLs. If it is, the resultnig specification is the sum of the retrieved specifications created by combining the respective `keys` and `types` lists into a new list each.
+        - Note how the various `id`s of the summed specifications must still be universally unique.
 
 ### Frozen data bundle
 - The frozen data bundle MUST be a `.tar.gz` file with at least one frozen metadata file in it.
@@ -78,103 +67,25 @@ The frozen metadata follows all the rules of the metadata file, with the followi
 - Each key specification MUST contain the following keys:
     - `qualifier`: a valid JSON string.
     - `description`: a valid JSON string. The human-readable description of the key. MAY be an URL to a human-readable description (for example, a schema.org specification).
+    - `value`: The type of value for the key. It MUST fall into one of the following categories:
+        - `text`: The key MUST specify a valid JSON string.
+        - `TYPE`: A valid `TYPE` value in the `types` list. The key MUST specify a valid JSON object with that `type`.
+        - `any`: The key MAY specify any valid JSON value.
 - Each key specification MAY contain the following keys:
     - `valid_values`: a JSON list of valid JSON values. If present, the value of the key MUST be one of the values in the list.
-
-An example specification:
-```json
-{
-    "types": [
-        {
-            "qualifier": "bundle",
-            "description": "A collection of data and metadata.",
-            "valid_keys": [
-                {
-                    "qualifier": "content",
-                    "required": true
-                }
-            ]
-        },
-        {
-            "qualifier": "file",
-            "description": "A file containing data.",
-            "valid_keys": [
-                {
-                    "qualifier": "path",
-                    "required": true
-                },
-                {
-                    "qualifier": "author",
-                    "required": false
-                },
-                {
-                    "qualifier": "fileType",
-                    "required": false
-                }
-            ]
-        },
-        {
-            "qualifier": "author",
-            "description": "An author",
-            "valid_keys": [
-                {
-                    "qualifier": "name",
-                    "required": true
-                },
-                {
-                    "qualifier": "email",
-                    "required": false
-                },
-                {
-                    "qualifier": "orcid",
-                    "required": true
-                }
-            ]
-        }
-    ],
-    "keys": {
-        {
-            "qualifier": "content",
-            "description": "The content of the data bundle."
-        },
-        {
-            "qualifier": "name",
-            "description": "A name, in the format {NAME SURNAME}."
-        },
-        {
-            "qualifier": "email",
-            "description": "An email address."
-        },
-        {
-            "qualifier": "orcid",
-            "description": "An ORCID identifier."
-        },
-        {
-            "qualifier": "fileType",
-            "description": "The type of the file, following the MIME media type specification.",
-            "valid_values": [
-                "text/plain",
-                "text/csv",
-                "text/tab-separated-values",
-                "application/json"
-            ]
-        },
-        {
-            "qualifier": "path",
-            "description": "The path to the file, relative to the metadata file."
-        }
-    }
-}
-```
-
+- Each specification MUST have at least one type, the `myr-bundle` type.
+    - The `myr-bundle` type MUST have as qualifier the string `"myr-bundle"`.
+    - The `myr-bundle` type MUST specify at least one valid key, with the qualifier `"content"` and `required` set to `true`.
+- Each specification MUST have at least one key, the `content` key.
+    - The `content` key MUST have as qualifier the string `"content"`.
+    - The `content` key MUST specify as value the string `"any"`.
+    - The `content` key MAY specify anything as `description`, but it SHOULD specify "the content of the bundle".
 
 ## Observations
 
 Some observations about the above specification:
 - There is no mention of specifying keys in objects that are not covered by the specification. You can add as many or as few keys as you want, as long as the keys that are covered by the specification are valid. This means that you can add keys that are not covered by the specification, but they will be ignored by any tool that reads the metadata file.
 - There is no limit on which keys may be shallow (with just one value) or lists (with multiple values). For this reason, some keys may behave weirdly:
-    - The `@specification` key may be a list of URLs. This is not a problem: one may simply sum up the specifications by combining the respective `keys` and `types` lists into a new list each.
-        - Note how the various `id`s of the summed specifications must still be universally unique.
     - Any key, like `author`, may be interpreted freely in its plural form. So `author` may instead by a list of authors (but the key must still be just `author`, singular).
     - The `valid_values` filter effectively makes the value shallow, as it must be just one of the (shallow) values in the list.
     - Some keys make sense only as lists, like `content` in the example above. Some keys make sense only as shallow values, like `path` in the example above. How to interpret lists on keys that make sense only as shallow values and vice-versa is up to the end-user: read the meaning of the key and come up with a sensible interpretation.
