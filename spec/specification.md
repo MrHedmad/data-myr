@@ -2,7 +2,7 @@
 
 The words MUST, SHOULD, MUST NOT, SHOULD NOT and MAY follow [RFC2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-For examples of the specification, see the [examples](examples) folder.
+For examples of the specification, see the [examples](example) folder.
 
 ## Definitions
 - **Data bundle**: a folder on disk containing data and metadata.
