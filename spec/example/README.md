@@ -44,7 +44,10 @@ We also read that we must specify the `myr-bundle` type, so let's do that:
 }
 ```
 
-Notice how we are describing itself. The root object has `type` equal to `myr-bundle`, and the `specification` object has `types` and `keys` that describe the `myr-bundle` type.
+Notice how we are describing ourselves. The root object has `type` equal to `myr-bundle`, and the `specification` object has `types` and `keys` that describe the `myr-bundle` type.
+
+The only special thing of the root JSON object is that it has a `specification` key. In every other aspect, it is just like any other object.
+
 You can also notice how we are violating our specification! The root object is missing the `content` key, and it is required. Let's add it.
 
 ```json
@@ -98,11 +101,11 @@ Since this very file is in the bundle, we can add it to the list. However, we do
                 "valid_keys": [
                     {
                         "qualifier": "path",
-                        "required": true,
+                        "required": true
                     },
                     {
                         "qualifier": "MIME_type",
-                        "required": true,
+                        "required": true
                     },
                     {
                         "qualifier": "author",
