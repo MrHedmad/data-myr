@@ -1,0 +1,22 @@
+repos:
+- repo: https://github.com/doublify/pre-commit-rust
+  rev: v1.0
+  hooks:
+  - id: fmt
+    args: ['--manifest-path', 'myr/Cargo.toml', '--']
+  - id: cargo-check
+    args: ['--manifest-path', 'myr/Cargo.toml', '--']
+
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.1.0
+  hooks:
+  - id: check-added-large-files
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+
+- repo: https://github.com/jorisroovers/gitlint
+  rev: v0.19.1
+  hooks:
+  - id: gitlint
+    stages: [commit-msg]

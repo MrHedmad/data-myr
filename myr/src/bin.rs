@@ -1,7 +1,7 @@
 fn main() {
     use clap::{Parser, Subcommand};
-    use std::path::Path;
     use libmyr as myr;
+    use std::path::Path;
 
     #[derive(Parser, Debug)]
     #[command(author, version, about, long_about)]
@@ -14,7 +14,6 @@ fn main() {
     #[derive(Subcommand, Debug)]
     enum Commands {
         // This struct lists all the subcommands
-
         /// Create a new, empty data bundle
         New {
             /// Path to the new data bundle directory
