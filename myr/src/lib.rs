@@ -101,8 +101,6 @@ mod tests {
 
     let resolved_object = resolve(object).unwrap();
 
-    println!("{}", serde_json::to_string_pretty(&resolved_object).unwrap());
-
     assert_eq!(resolved_object, json!({
         "specification": {
             "hello": "hello.txt"
