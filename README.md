@@ -20,11 +20,11 @@ You can use Myr to define a structure, perhaps for just your own lab, and uses i
 Then, once (and if) a global standard is defined, you can migrate your data to that standard (in some way).
 
 ## The plan
-- [/] Define a simple, self-contained metadata format.
-- [ ] Implement a metadata validator for the format.
-- [ ] Start using the format in my own work.
-- [ ] ???
-- [ ] Profit
+Emoji key: 📅: Planned, 🚧: In progress, ✅: Done
+- 🚧 Define a simple, self-contained metadata format.
+- 📅 Implement a metadata validator for the format.
+- 📅 Start using the format in our own work.
+- 📅 Work out the kinks.
 
 ## The execution
 - You can find examples of data myr in [examples/](examples/), so you can see if it's good for your use case.
