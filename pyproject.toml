@@ -1,0 +1,40 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "myr"
+version = "0.0.1"
+authors = [
+    {name = "Luca Visentin", email = "luca.visentin@unito.it"}
+]
+description = "A way to manage local data in a FAIR way."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux"
+]
+
+dependencies = [
+    "requests",
+    "colorama == 0.4.6"
+]
+
+
+[tool.setuptools.packages]
+find = {}
+
+
+[project.urls]
+"Homepage" = "https://github.com/MrHedmad/data-myr"
+"Bug Tracker" = "https://github.com/MrHedmad/data-myr/issues"
+
+
+[project.scripts]
+myr = "myr.myr:main"
