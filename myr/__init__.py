@@ -12,8 +12,6 @@ init(autoreset=True)  # This sets up colorama.
 # Setup (colored) logging
 FORMAT: str = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 """The format of the logging module messages"""
-LOG_FILE_PATH: Optional[Path] = None
-"""Path where to save the file log. Set to `None` to suppress file logging."""
 
 # TODO: Change this to the name of the module. This is the root logger.
 root_logger = logging.getLogger("myr")
@@ -60,21 +58,6 @@ class ColorFormatter(logging.Formatter):
 
 
 console_formatter = ColorFormatter(FORMAT)
-
-# If you don't need file logging, this can be deleted
-if LOG_FILE_PATH:
-    os.makedirs(_LOG_PATH.parent, exist_ok=True)
-    file_formatter = logging.Formatter(format)
-    file_h = RotatingFileHandler(
-        filename=Path(_LOG_PATH),
-        encoding="utf-8",
-        mode="a+",
-        maxBytes=1e5,
-        backupCount=5,
-    )
-    file_h.setFormatter(file_formatter)
-    file_h.setLevel(logging.DEBUG)  # The level of the file log is set here.
-    root_logger.addHandler(file_h)
 
 stream_h = StreamHandler()
 stream_h.setFormatter(console_formatter)
