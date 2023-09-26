@@ -1,5 +1,7 @@
 > **Important Note**: This project is still a WIP and therefore nothing is definitive. Please take a look at [the plan](https://github.com/MrHedmad/data-myr#the-plan) below. It is not recommended to use it for production work, but you are welcome to try it out and give feedback.
 
+![GitHub tag checks state](https://img.shields.io/github/checks-status/MrHedmad/data-myr/main?style=flat-square&logo=github&label=Build%20Status)
+
 # Data Myr
 > The myr are like rusted metal: gleaming purpose hidden by a thin disguise of debris.
 > — <cite> [Iron Myr](https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=194168) </cite>
