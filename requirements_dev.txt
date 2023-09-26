@@ -1,0 +1,4 @@
+black==23.9.1
+build==1.0.3
+pytest==7.4.2
+pre-commit==3.4.0

@@ -3,38 +3,56 @@
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/MrHedmad/data-myr/python-package.yml?style=flat-square&logo=github)
 
 # Data Myr
-> The myr are like rusted metal: gleaming purpose hidden by a thin disguise of debris.
-> — <cite> [Iron Myr](https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=194168) </cite>
+> We can't quite determine what they're doing, but they seem to be doing it quite well.
+> — <cite> [Myr Galvanizer](https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=220364) </cite>
 
 A data myr is a simple way to locally manage data following [FAIR principles](https://www.go-fair.org/fair-principles/).
 
-## The idea
+This is the Python implementation of `myr`, a tool to create, check and freeze
+myr-data bundles. You can read about myr-data bundles in [mrhedmad/data-myr-spec](https://github.com/mrhedmad/data-myr-spec).
 
-A myr **data bundle** is a folder with data and metadata inside.
-It is in principle similar to [RO-Crate](https://www.researchobject.org/ro-crate/), but a lot simpler, so you can use it for your data *right now*.
+## Installation
+You will need Python 3.10 +. Install data-myr with:
+```bash
+# Optional, but highly encouraged to install in a virtual environment
+python -m venv env
+source env/bin/activate
+pip install @ git+https://github.com/mrhedmad/data-myr.git
+```
+If everything goes well, you can now use `myr`. Start with `myr --help`.
 
-It allows everyone to have their own metadata system, catered to their own need, while avoiding the need to learn a complex specification.
+## Usage
+`myr` is still under development. This section will be filled out when a sensible
+version is realeased.
 
-Ideally, everyone should follow a single, standardized metadata format, but it will take some time before such a format emerges and the community adopts it.
-In the meantime, a lot of data is being produced, and a lot of it is wasted by not being even remotely FAIR.
-
-You can use Myr to define a structure, perhaps for just your own lab, and uses it to manage your data.
-Then, once (and if) a global standard is defined, you can migrate your data to that standard (in some way).
-
-## The plan
-Emoji key: 📅: Planned, 🚧: In progress, ✅: Done
-- 🚧 Define a simple, self-contained metadata format.
-- 📅 Implement a metadata validator for the format.
-- 📅 Start using the format in our own work.
-- 📅 Work out the kinks.
-
-## The execution
-- You can find examples of data myr in [examples/](examples/), so you can see if it's good for your use case.
-- You can read about the format specification in [spec/README.md](spec/README.md).
-- Read the formal specification [here](spec/specification.md).
+For now, you should **not** be using `myr`!
 
 # Contributing
-Contributions are welcome! Please open an issue or a pull request. If you have comments or suggestions, please open an issue, I'd love to hear from you.
+Contributions are welcome! Please open an issue or a pull request.
+If you have comments or suggestions, please open an issue, I'd love to hear from you.
+
+To contribute, [fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo),
+then clone it locally with `git clone`. Once you do, you can setup your work
+environment by running:
+```bash
+cd data-myr
+python -m venv env
+source env/bin/activate
+pip install -r requirements_dev.txt
+pre-commit install
+pre-commit install -t commit-msg # Install the commit message hooks too!
+pip install -e . # Install the package in editable form
+```
+You will now have `black` and other linters on commit, plus the ability to
+run `pytest` to run the whole suite of tests.
+
+You can look at [TODO issues](https://github.com/MrHedmad/data-myr/labels/todo)
+for things that need to be implemented yet, or at all issues for things that
+need fixing.
+
+You can use `myr` in the virtual environment to test your changes immediately.
+
+Please test that `pytest` checks pass before opening a pull request.
 
 # License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
