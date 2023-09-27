@@ -1,12 +1,17 @@
 from enum import Enum
 from typing import Optional, Union, Literal, Any, NoReturn
-from functools import partial
+from functools import partial, total_ordering
 from dataclasses import dataclass
 from sys import exit
 from copy import copy
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class InvalidBundleError(Exception):
     """Raised when loading a bundle fails"""
+
     pass
 
 
@@ -27,10 +32,13 @@ class ViolationType(Enum):
     MISSING_TYPE_DESCRIPTION = "The type has no `description`."
     MISSING_TYPE_VALID_KEYS = "The type has no `valid_keys` key."
     MISSING_TYPE_KEY_REQUIRED = "The type key has no `required` field."
+    MISSING_TYPE_KEY_QUALIFIER = "The type key has no `qualifier`."
     # Key specification errors
     MISSING_KEY_QUALIFIER = "A key has no `qualifier`."
     MISSING_KEY_DESCRIPTION = "The key has no `description`."
     MISSING_KEY_VALUE = "The key has no `value`."
+    UNKNOWN_KEY_VALUE = "The key has unknown `value`."
+    MALFORMED_KEY_VALID_VALUES = "The entry of valid values for this key is wrong."
     # Double qualifier errors
     DUPLICATED_QUALIFIER = "The qualifier for this object is duplicated."
     # Invalid specification constants
@@ -40,6 +48,7 @@ class ViolationType(Enum):
     WRONG_KEY_TYPE = "Key has type {}, but expected {}."
 
 
+@total_ordering
 class ViolationSeverity(Enum):
     CRITICAL = "Critical"
     """
@@ -59,11 +68,20 @@ class ViolationSeverity(Enum):
     There is nothing wrong, but the user should be notified nonetheless.
     """
 
+    def __lt__(self, other):
+        values = {self.CRITICAL: 3, self.ERROR: 2, self.WARNING: 1, self.NOTE: 0}
+        if self.__class__ is other.__class__:
+            return values[self] < values[other]
+        return NotImplemented
+
 
 class SpecificationViolation:
     def __init__(
-        self, location: Optional[str], violation_type: Optional[ViolationType], severity: ViolationSeverity,
-        context: Optional[dict] = None
+        self,
+        location: Optional[str],
+        violation_type: Optional[ViolationType],
+        severity: ViolationSeverity,
+        context: Optional[dict] = None,
     ):
         self.location: Optional[str] = location
         self.violation_type: Optional[ViolationType] = violation_type
@@ -77,26 +95,51 @@ class InvalidSpecificationError(InvalidBundleError):
     def __init__(self, violation: SpecificationViolation, *args, **kwargs) -> None:
         self.violation: SpecificationViolation = violation
 
-class MyrBundle:
-    def __init__(self, data):
-        self.specification = data["specification"]
+
+class MultipleViolationsError(InvalidBundleError):
+    """Raised when multiple violations are found."""
+
+    def __init__(self, violations: list[InvalidSpecificationError]) -> None:
+        self.violations: list[InvalidSpecificationError] = violations
+        """The input list of violations"""
+        output_str = f" --- FOUND {len(violations)} VIOLATIONS ---\n\n"
+        for i, violation in enumerate(violations, 1):
+            violation_context = violation.violation.context
+            output_str += (
+                f"[{i} / {len(violations)}] "
+                f"@ {violation.violation.location} "
+                f"-- {violation.violation.severity.value}: "
+                f"{violation.violation.violation_type.value}\n"
+            )
+        self.message: str = output_str
+        """A parsed summary message of all the violations."""
+
+        self.max_severity: ViolationSeverity = max(
+            [x.violation.severity for x in violations]
+        )
+        """The greatest severity among all violations"""
+
 
 PossibleViolations = Union[list[SpecificationViolation], None]
 
-def violation(violation_type: ViolationType, severity: ViolationSeverity, location: Optional[str]) -> InvalidSpecificationError:
+
+def violation(
+    violation_type: ViolationType, severity: ViolationSeverity, location: Optional[str]
+) -> InvalidSpecificationError:
     """Wrapper to make violation errors quickly"""
+    log.debug(f"Making new violation: {violation_type}, {severity}, {location}")
     return InvalidSpecificationError(
         violation=SpecificationViolation(
-            location=location,
-            violation_type=violation_type,
-            severity=severity
+            location=location, violation_type=violation_type, severity=severity
         )
     )
 
-critical_violation = partial(violation, severity = ViolationSeverity.CRITICAL)
-error_violation = partial(violation, severity = ViolationSeverity.ERROR)
-warning_violation = partial(violation, severity = ViolationSeverity.WARNING)
-note_violation = partial(violation, severity = ViolationSeverity.NOTE)
+
+critical_violation = partial(violation, severity=ViolationSeverity.CRITICAL)
+error_violation = partial(violation, severity=ViolationSeverity.ERROR)
+warning_violation = partial(violation, severity=ViolationSeverity.WARNING)
+note_violation = partial(violation, severity=ViolationSeverity.NOTE)
+
 
 @dataclass
 class MyrKey:
@@ -104,6 +147,7 @@ class MyrKey:
     description: str
     value: Union[Literal["any"], Literal["text"], str]
     valid_values: list[Any]
+
 
 @dataclass
 class MyrType:
@@ -118,112 +162,204 @@ class MyrType:
         all_keys.extend(self.optional_keys)
         return all_keys
 
-def get_or_raise(dictionary: dict, key: str, error: Exception) -> Any:
-    try:
-        return dictionary[key]
-    except KeyError:
-        raise error
 
-def raise_violations(violations: list[InvalidSpecificationError]) -> None:
-    """Raise a list of specifications, ending the program if errors are found."""
-    output_str = f" --- FOUND {len(violations)} VIOLATIONS ---\n\n"
-    stop = False
-    for i, violation in enumerate(violations):
-        violation_context = violation.violation.context
-        output_str += (
-            f"[{i} / {len(violations)}]"
-            f"@ {violation.violation.location} "
-            f"-- {violation.violation.severity.value}:"
-            f"{violation.violation.violation_type.value}\n"
-        )
-        if violation.violation.severity in [ViolationSeverity.ERROR, ViolationSeverity.CRITICAL]:
-            stop = True
-    print(output_str)
-    if stop:
-        exit(1)
+def check_parsing_validity(specification: dict) -> None:
+    """Check a specification for basic parsing validity.
+
+    This includes:
+        - Having the `types` and `keys` keys;
+
+    Raises:
+        InvalidSpecificationError if some checks fail.
+    """
+    if "types" not in specification:
+        raise critical_violation(ViolationType.TYPES_UNDEFINED, location=f"/")
+    if "keys" not in specification:
+        raise critical_violation(ViolationType.KEYS_UNDEFINED, location=f"/")
 
     return None
+
+
+def parse_specification_keys(
+    keys: list[dict],
+) -> tuple[dict[str, MyrKey], list[InvalidSpecificationError]]:
+    """Parse the keys in a specification.
+
+    Returns:
+        A tuple with a dict of parsed `MyrType`s for correctly parsed keys and a
+        list of `InvalidSpecificationError`s with errors for invalid keys.
+    """
+    violations = []
+    parsed_keys: dict[str, MyrKey] = {}
+    for value in keys:
+        # First of all, check if we have the valid keys.
+        if "qualifier" not in value:
+            violations.append(
+                error_violation(ViolationType.MISSING_KEY_QUALIFIER, location=f"/keys/")
+            )
+
+            continue
+        key = value["qualifier"]
+        if "description" not in value:
+            violations.append(
+                error_violation(
+                    ViolationType.MISSING_KEY_DESCRIPTION, location=f"/keys/{key}/"
+                )
+            )
+            continue
+        if "value" not in value:
+            violations.append(
+                error_violation(
+                    ViolationType.MISSING_KEY_VALUE, location=f"/keys/{key}/"
+                )
+            )
+            continue
+
+        if "valid_values" in value and value["valid_values"] is not None:
+            if not isinstance(value["valid_values"], list):
+                violations.append(
+                    error_violation(
+                        ViolationType.MALFORMED_KEY_VALID_VALUES,
+                        location=f"/keys/{key}/valid_values/",
+                    )
+                )
+                continue
+            if not all([isinstance(x, str) for x in value["valid_values"]]):
+                violations.append(
+                    error_violation(
+                        ViolationType.MALFORMED_KEY_VALID_VALUES,
+                        location=f"/keys/{key}/valid_values/",
+                    )
+                )
+                continue
+
+        parsed_keys[key] = MyrKey(
+            qualifier=value["qualifier"],
+            description=value["description"],
+            value=value["value"],
+            valid_values=value.get("valid_values"),
+        )
+
+    return (parsed_keys, violations)
+
+
+def parse_specification_types(
+    types: list[dict], keys: dict[str, MyrKey]
+) -> tuple[list[MyrType], list[InvalidSpecificationError]]:
+    parsed_types: list[MyrType] = []
+    violations: list[InvalidSpecificationError] = []
+    for value in types:
+        # Again, check first if we have the keys.
+        if "qualifier" not in value:
+            violations.append(
+                error_violation(
+                    ViolationType.MISSING_TYPE_QUALIFIER, location=f"/types/"
+                )
+            )
+            continue
+        key = value["qualifier"]
+        if "description" not in value:
+            violations.append(
+                error_violation(
+                    ViolationType.MISSING_TYPE_DESCRIPTION, location=f"/types/{key}/"
+                )
+            )
+            continue
+        if "valid_keys" not in value:
+            violations.append(
+                error_violation(
+                    ViolationType.MISSING_TYPE_VALID_KEYS, location=f"/types/{key}/"
+                )
+            )
+            continue
+        # Check if we have all the keys we need in valid_keys
+        required_keys = []
+        optional_keys = []
+        found_violations = False
+        for key_obj in value["valid_keys"]:
+            if "qualifier" not in key_obj:
+                violations.append(
+                    error_violation(
+                        ViolationType.MISSING_TYPE_KEY_QUALIFIER,
+                        location=f"/types/{key}/valid_keys/",
+                    )
+                )
+                found_violations = True
+                continue
+            if key_obj["qualifier"] not in keys:
+                violations.append(
+                    error_violation(
+                        ViolationType.UNKOWN_KEY,
+                        location=f"/types/{key}/valid_keys/{key_obj['qualifier']}/",
+                    )
+                )
+                found_violations = True
+                continue
+            if "required" not in key_obj:
+                violations.append(
+                    error_violation(
+                        ViolationType.MISSING_TYPE_KEY_REQUIRED,
+                        location=f"/types/{key}/valid_keys/{key_obj['qualifier']}/",
+                    )
+                )
+                found_violations = True
+                continue
+
+            if key_obj["required"] is True:
+                required_keys.append(keys[key_obj["qualifier"]])
+            else:
+                optional_keys.append(keys[key_obj["qualifier"]])
+
+        if found_violations:
+            continue
+
+        parsed_types.append(
+            MyrType(
+                qualifier=value["qualifier"],
+                description=value["description"],
+                required_keys=required_keys,
+                optional_keys=optional_keys,
+            )
+        )
+
+    return (parsed_types, violations)
+
 
 class Specification:
     def __init__(self, specification: dict) -> None:
         """Parse a specification to a specification object.
 
-        Will raise InvalidSpecificationError if some are found, with
-        criticality CRITICAL.
+        Raises:
+            `MultipleViolationsError` if specification violations are found.
         """
         # Get these out of the way.
-        if "types" not in specification:
-            raise critical_violation(ViolationType.TYPES_UNDEFINED, location = f"/")
-        if "keys" not in specification:
-            raise critical_violation(ViolationType.KEYS_UNDEFINED, location = f"/")
+        check_parsing_validity(specification)
 
-        # Step 1 - Load the keys
-        # We do this first to load them in each MyrType object.
-        violations = []
-        keys: dict[str, MyrKey] = {}
-        for value in specification["keys"]:
-            # First of all, check if we have the valid keys.
-            if "qualifier" not in value:
-                violations.append(error_violation(ViolationType.MISSING_KEY_QUALIFIER, location=f"keys/"))
-                continue
-            key = value["qualifier"]
-            if "description" not in value:
-                violations.append(error_violation(ViolationType.MISSING_KEY_DESCRIPTION, location=f"keys/{key}/"))
-                continue
-            if "value" not in value:
-                violation.append(error_violation(ViolationType.MISSING_KEY_VALUE, location=f"keys/{key}/"))
-                continue
-            keys[key] = MyrKey(
-                qualifier=value["qualifier"], description=value["description"], value=value["value"],
-                valid_values=value.get("valid_values")
-            )
-
-        types: list[MyrType] = []
-        # Step 2 - Load the types
-        # Since we know of the keys, we can make the types.
-        for value in specification["types"]:
-            # Again, check first if we have the keys.
-            if "qualifier" not in value:
-                violations.append(error_violation(ViolationType.MISSING_TYPE_QUALIFIER, location=f"types/"))
-                continue
-            key = value["qualifier"]
-            if "description" not in value:
-                violations.append(error_violation(ViolationType.MISSING_TYPE_DESCRIPTION, location=f"types/{key}/"))
-                continue
-            if "valid_keys" not in value:
-                violations.append(error_violation(ViolationType.MISSING_TYPE_VALID_KEYS, location=f"types/{key}/"))
-                continue
-            # Check if we have all the keys we need in valid_keys
-            required_keys = []
-            optional_keys = []
-            for key_obj in value["valid_keys"]:
-                if "qualifier" not in key_obj:
-                    violations.append(error_violation(ViolationType.MISSING_TYPE_KEY_REQUIRED, location=f"types/{key}/valid_keys/"))
-                    continue
-                if key_obj["qualifier"] not in keys:
-                    violations.append(error_violation(ViolationType.UNKOWN_KEY, location=f"types/{key}/valid_keys/{key_obj['qualifier']}"))
-                    continue
-                if key_obj["required"] is True:
-                    required_keys.append(keys[key_obj["qualifier"]])
-                else:
-                    optional_keys.append(keys[key_obj["qualifier"]])
-            types.append(
-                MyrType(
-                    qualifier=value["qualifier"],
-                    description=value["description"],
-                    required_keys=required_keys,
-                    optional_keys=optional_keys
-                )
-            )
+        keys, violations = parse_specification_keys(specification["keys"])
+        types, type_violations = parse_specification_types(specification["types"], keys)
+        violations.extend(type_violations)
 
         if violations:
-            raise_violations(violations)
+            raise MultipleViolationsError(violations)
 
         # Step 3 - Check if the keys mention valid types
         # We have a sort of circular dependency here, since the keys
         # may list valid types in the specification. We check them here.
-
-
+        loop_violations: list[InvalidSpecificationError] = []
+        possible_types = [x.qualifier for x in types]
+        for key, value in keys.items():
+            # The "value" slot has what the key is
+            if value.value in ["text", "any"]:
+                continue
+            if value.value not in possible_types:
+                loop_violations.append(
+                    error_violation(
+                        ViolationType.UNKNOWN_KEY_VALUE, location=f"/keys/{key}/value"
+                    )
+                )
+                continue
+        if loop_violations:
+            raise MultipleViolationsError(violations)
 
         # Step 4 - Package types in the object
         self.types: dict[str, MyrType]

@@ -13,7 +13,7 @@ BASE_MYR_DATA = {
             {
                 "qualifier": "myr-bundle",
                 "valid_keys": [{"qualifier": "content", "required": True}],
-                "description": "A bundle of data and metadata"
+                "description": "A bundle of data and metadata",
             }
         ],
         "keys": [
