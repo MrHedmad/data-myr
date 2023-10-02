@@ -27,6 +27,8 @@ class ViolationType(Enum):
     TYPE_NOT_FOUND = "Object did not have the `type` key"
     TYPES_UNDEFINED = "The specification does not have the `types` key."
     KEYS_UNDEFINED = "The specification does not have the `keys` key."
+    KEYS_VALUE_INVALID = "The `keys` key does not specify a list of values."
+    TYPES_VALUE_INVALID = "The `types` key does not specify a list of values."
     # Type specification errors
     MISSING_TYPE_QUALIFIER = "A type has no `qualifier`."
     MISSING_TYPE_DESCRIPTION = "The type has no `description`."
@@ -168,6 +170,7 @@ def check_parsing_validity(specification: dict) -> None:
 
     This includes:
         - Having the `types` and `keys` keys;
+        - Both the `types` and `keys` keys have lists as values;
 
     Raises:
         InvalidSpecificationError if some checks fail.
@@ -176,6 +179,11 @@ def check_parsing_validity(specification: dict) -> None:
         raise critical_violation(ViolationType.TYPES_UNDEFINED, location=f"/")
     if "keys" not in specification:
         raise critical_violation(ViolationType.KEYS_UNDEFINED, location=f"/")
+
+    if not isinstance(specification["types"], list):
+        raise critical_violation(ViolationType.TYPES_VALUE_INVALID, location=f"/types/")
+    if not isinstance(specification["keys"], list):
+        raise critical_violation(ViolationType.KEYS_VALUE_INVALID, location=f"/keys/")
 
     return None
 
