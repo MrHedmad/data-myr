@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import BinaryIO
 import os
 import json
+from myr.checker import MultipleViolationsError
 
 log = logging.getLogger(__name__)
 
@@ -113,3 +114,11 @@ def main() -> None:
             myr_freeze(input_path, outfile)
         case _:
             parser.print_help()
+
+
+def myr_entrypoint():
+    try:
+        main()
+    except MultipleViolationsError as e:
+        print(e.message)
+        exit(1)
