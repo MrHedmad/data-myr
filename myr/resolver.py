@@ -26,7 +26,7 @@ def retrieve_json(url) -> dict:
     try:
         response = requests.get(url=url)
     except requests.exceptions.RequestException as e:
-        log.exception(f"Failed to retrieve data from {value}: {e}")
+        log.exception(f"Failed to retrieve data from {url}: {e}")
         sys.exit(1)
 
     try:
