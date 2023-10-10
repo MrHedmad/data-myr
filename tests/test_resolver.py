@@ -54,3 +54,12 @@ def test_resolve_relative(test_data):
 
     ids = find_ids(test_data)
     assert resolve_relative(test_data, ids) == expected_data
+
+
+def test_fuse_specifications():
+    left = {"types": [{"some": "other"}], "keys": [{"a": "key"}]}
+    right = {"types": [{"other": "bollo"}], "keys": [{"banana": "papaya"}]}
+    expected = {"types": [{"some": "other"}, {"other": "bollo"}], "keys": [
+        {"a": "key"}, {"banana": "papaya"}]}
+
+    assert fuse_specifications(left, right) == expected

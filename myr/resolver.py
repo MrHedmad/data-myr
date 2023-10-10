@@ -130,6 +130,3 @@ def resolve_relative(structure: dict, ids: dict) -> dict:
             log.exception(f"Key {new_key} maps to id {value} but no such ID was found.")
             raise KeyError
     return resolved
-
-
-def resolve(structure: dict) -> dict:
