@@ -44,10 +44,12 @@ class ViolationType(Enum):
     # Double qualifier errors
     DUPLICATED_QUALIFIER = "The qualifier for this object is duplicated."
     # Invalid specification constants
-    MISSING_REQUIRED_KEY = "The object is missing a required key, {}."
+    MISSING_REQUIRED_KEY = "The object is missing a required specification key."
     # Invalid checks errors
-    UNKOWN_KEY = "Key was not found in the specification"
-    WRONG_KEY_TYPE = "Key has type {}, but expected {}."
+    MISSING_TYPE_KEY = "The object has no 'type' key."
+    UNKNOWN_TYPE = "The object has a type which is not in the specification."
+    UNKOWN_KEY = "Key was not found in the specification."
+    WRONG_KEY_TYPE = "Key has unexpected type."
 
 
 @total_ordering
